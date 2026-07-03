@@ -4,6 +4,7 @@ import com.minimarket.entity.Inventario;
 import com.minimarket.service.InventarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class InventarioController {
         return (inventario != null) ? ResponseEntity.ok(inventario) : ResponseEntity.notFound().build();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CAJERO')")
     @PostMapping
     public Inventario registrarMovimiento(@RequestBody Inventario inventario) {
         return inventarioService.save(inventario);
