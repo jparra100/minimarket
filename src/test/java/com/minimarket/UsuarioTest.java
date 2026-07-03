@@ -2,67 +2,52 @@ package com.minimarket;
 
 import com.minimarket.entity.Rol;
 import com.minimarket.entity.Usuario;
+import com.minimarket.repository.UsuarioRepository;
+import com.minimarket.security.service.CustomUserDetailsService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class UsuarioTest {
+    @Mock
+    private UsuarioRepository usuarioRepository;
+
+    @InjectMocks
+    private CustomUserDetailsService customUserDetailsService;
 
     @Test
-    public void testCrearUsuario() {
-        // Crear roles para el usuario
-        Set<Rol> roles = Set.of(new Rol("ADMIN"));
+    public void testLoginValido() {
+        Rol rolAdmin = new Rol("ADMIN");
+        Usuario usuarioPrueba = new Usuario();
+        usuarioPrueba.setUsername("cajero1");
+        usuarioPrueba.setPassword("pass123");
+        usuarioPrueba.setRoles(Set.of(rolAdmin));
 
-        // Crear usuario con valores iniciales
-        Usuario usuario = new Usuario();
-        usuario.setUsername("adminUser");
-        usuario.setPassword("securePassword123");
-        usuario.setRoles(roles);
+        when(usuarioRepository.findByUsername("cajero1")).thenReturn(Optional.of(usuarioPrueba));
 
-        // Verificar que el usuario se creó correctamente
-        assertNotNull(usuario);
-        assertEquals("adminUser", usuario.getUsername());
-        assertEquals("securePassword123", usuario.getPassword());
-        assertEquals(1, usuario.getRoles().size());
-        assertTrue(usuario.getRoles().stream().anyMatch(role -> role.getNombre().equals("ADMIN")));
+        UserDetails resultado = customUserDetailsService.loadUserByUsername("cajero1");
+
+        assertNotNull(resultado);
+        assertEquals("cajero1", resultado.getUsername());
     }
 
     @Test
-    public void testEquals() {
-        // Crear dos usuarios con los mismos valores
-        Usuario usuario1 = new Usuario();
-        usuario1.setId(1L);
-        usuario1.setUsername("adminUser");
-        usuario1.setPassword("securePassword123");
+    public void testLoginUsuarioNoExiste() {
+        when(usuarioRepository.findByUsername("fantasma")).thenReturn(Optional.empty());
 
-        Usuario usuario2 = new Usuario();
-        usuario2.setId(1L);
-        usuario2.setUsername("adminUser");
-        usuario2.setPassword("securePassword123");
-
-        // Verificar que los dos usuarios son iguales
-        assertEquals(usuario1.getId(), usuario2.getId());
-        assertEquals(usuario1.getUsername(), usuario2.getUsername());
-        assertEquals(usuario1.getPassword(), usuario2.getPassword());
-    }
-
-    @Test
-    public void testAgregarRoles() {
-        // Crear usuario sin roles
-        Usuario usuario = new Usuario();
-        usuario.setUsername("user1");
-        usuario.setPassword("password");
-
-        // Agregar roles
-        Rol roleUser = new Rol("USER");
-        Rol roleAdmin = new Rol("ADMIN");
-        usuario.setRoles(Set.of(roleUser, roleAdmin));
-
-        // Verificar que los roles fueron agregados correctamente
-        assertEquals(2, usuario.getRoles().size());
-        assertTrue(usuario.getRoles().stream().anyMatch(role -> role.getNombre().equals("USER")));
-        assertTrue(usuario.getRoles().stream().anyMatch(role -> role.getNombre().equals("ADMIN")));
+        assertThrows(UsernameNotFoundException.class, () -> {
+            customUserDetailsService.loadUserByUsername("fantasma");
+        });
     }
 }
