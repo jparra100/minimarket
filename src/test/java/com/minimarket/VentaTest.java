@@ -1,5 +1,7 @@
 package com.minimarket;
 
+import com.minimarket.entity.DetalleVenta;
+import com.minimarket.entity.Producto;
 import com.minimarket.entity.Venta;
 import com.minimarket.service.VentaService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,9 +14,12 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -38,8 +43,6 @@ public class VentaTest {
         Venta venta = new Venta();
         given(ventaService.save(any())).willReturn(venta);
     }
-
-    // --- POST /api/ventas --- seguridad ya implementada
 
     @Test
     @WithMockUser(roles = "CAJERO")
@@ -86,6 +89,43 @@ public class VentaTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VENTA_JSON))
                 .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAJERO")
+    public void testVentaReflejaProductosVendidos() throws Exception {
+        // Construir un producto con nombre y precio conocidos
+        Producto producto = new Producto();
+        producto.setId(1L);
+        producto.setNombre("Leche");
+        producto.setPrecio(1500.0);
+        producto.setStock(10);
+
+        // Construir el detalle de venta asociado al producto
+        DetalleVenta detalle = new DetalleVenta();
+        detalle.setId(1L);
+        detalle.setCantidad(2);
+        detalle.setPrecio(1500.0);
+        detalle.setProducto(producto);
+
+        // Construir la venta con el detalle incluido
+        Venta ventaConDetalles = new Venta();
+        ventaConDetalles.setId(1L);
+        ventaConDetalles.setDetalles(List.of(detalle));
+
+        // Configurar el mock para devolver la venta con productos al guardar
+        given(ventaService.save(any())).willReturn(ventaConDetalles);
+
+        // Enviar solicitud de creación de venta como cajero
+        // Verificar que la respuesta refleja correctamente los productos vendidos
+        mockMvc.perform(post("/api/ventas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VENTA_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.detalles").isArray())
+                .andExpect(jsonPath("$.detalles[0].cantidad").value(2))
+                .andExpect(jsonPath("$.detalles[0].precio").value(1500.0))
+                .andExpect(jsonPath("$.detalles[0].producto.nombre").value("Leche"));
     }
 
 }

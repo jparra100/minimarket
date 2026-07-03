@@ -40,8 +40,6 @@ public class ProductoTest {
         given(productoService.findById(1L)).willReturn(producto);
     }
 
-    // --- PUT /api/productos/{id} --- seguridad ya implementada
-
     @Test
     @WithMockUser(roles = "ADMIN")
     public void testAdminPuedeActualizarProducto() throws Exception {

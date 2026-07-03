@@ -1,14 +1,20 @@
 package com.minimarket;
 
+import com.minimarket.entity.Inventario;
+import com.minimarket.service.InventarioService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.oneOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -21,7 +27,13 @@ public class InventarioTest {
     @Autowired
     private MockMvc mockMvc;
 
-    // --- POST /api/inventario --- seguridad ya implementada
+    @MockitoBean
+    private InventarioService inventarioService;
+
+    @BeforeEach
+    void setUp() {
+        given(inventarioService.save(any())).willReturn(new Inventario());
+    }
 
     @Test
     @WithMockUser(roles = "ADMIN")
